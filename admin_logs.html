@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 관제 센터</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: #0f172a; color: #f8fafc; min-height: 100vh; padding: 24px 16px; display: flex; justify-content: center; }
+        .container { max-width: 900px; width: 100%; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .back-link { color: #38bdf8; text-decoration: none; font-weight: 700; font-size: 14px; }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-box { background: #1e293b; padding: 18px; border-radius: 16px; border: 1px solid #334155; text-align: center; }
+        .stat-num { font-size: 24px; font-weight: 800; color: #38bdf8; margin-top: 4px; }
+        .stat-label { font-size: 12px; color: #94a3b8; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+        .tab-btn {
+            background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 10px 18px;
+            border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.2s;
+        }
+        .tab-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+        
+        /* 사용자 목록 */
+        .user-item { border-bottom: 1px solid #334155; padding: 16px 0; }
+        .user-item:last-child { border-bottom: none; }
+        .user-head { display: flex; justify-content: space-between; align-items: center; }
+        .user-name { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+        .user-meta { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .log-chip { background: #0f172a; padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #38bdf8; margin-right: 4px; }
+        
+        /* 아카이브 목록 */
+        .date-badge { display: inline-block; background: #0284c7; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+        .archive-q { font-size: 16px; font-weight: 800; color: #fde047; margin-bottom: 14px; line-height: 1.4; }
+        .archive-ans { background: #0f172a; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #38bdf8; }
+        .ans-author-line { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .ans-text-line { color: #e2e8f0; line-height: 1.5; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <div>
+                <h1 style="font-size:22px; font-weight:800; color:#38bdf8;">📊 마음기상청 종합 관제소</h1>
+                <p style="font-size:12px; color:#94a3b8;">방문자 활동 모니터링 및 일자별 질문·답변 기록소</p>
+            </div>
+            <a href="/" class="back-link">← 마음기상청 홈으로</a>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-label">등록 회원수</div>
+                <div class="stat-num">{{ total_users }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">전체 이야기</div>
+                <div class="stat-num">{{ total_posts }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">전체 댓글</div>
+                <div class="stat-num">{{ total_comments }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">누적 질문답변</div>
+                <div class="stat-num">{{ total_daily }}</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-users', this)">👥 사용자 활동 로그</button>
+            <button class="tab-btn" onclick="switchTab('tab-archive', this)">🔮 지난 질문·답변 아카이브</button>
+        </div>
+
+        <!-- 탭 1: 사용자 활동 로그 -->
+        <div id="tab-users" class="tab-content active">
+            <div class="card">
+                <h3 style="font-size: 16px; margin-bottom: 14px; color:#f8fafc;">최근 접속 사용자 리스트 (활동순)</h3>
+                {% for u in users %}
+                <div class="user-item">
+                    <div class="user-head">
+                        <div>
+                            <span class="user-name">{{ u.nickname }}</span>
+                            {% if u.is_admin %}<span style="font-size:11px; background:#ef4444; color:white; padding:2px 6px; border-radius:6px; margin-left:6px;">관리자</span>{% endif %}
+                            <div class="user-meta">최근 접속: {{ u.last_active }} | 작성글 {{ u.post_count }}개 | 댓글 {{ u.comment_count }}개</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        {% for l in user_logs[u.user_token] %}
+                        <span class="log-chip">{{ l.endpoint }} ({{ l.visited_at[11:19] }})</span>
+                        {% else %}
+                        <span style="font-size:11px; color:#64748b;">방문 로그 없음</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 탭 2: 질문 답변 아카이브 -->
+        <div id="tab-archive" class="tab-content">
+            {% for date_key, data in archive_by_date.items() %}
+            <div class="card">
+                <span class="date-badge">📅 {{ date_key }}</span>
+                <div class="archive-q">Q. {{ data.question }}</div>
+
+                <div style="font-size:13px; color:#94a3b8; margin-bottom:10px;">기록된 답변 ({{ data.answers|length }}개)</div>
+                {% for ans in data.answers %}
+                <div class="archive-ans">
+                    <div class="ans-author-line">
+                        <span>👤 <b>{{ ans.author_name }}</b> ({{ ans.created_at }})</span>
+                        <span style="color:#f43f5e;">❤️ {{ ans.likes }}</span>
+                    </div>
+                    <div class="ans-text-line">{{ ans.content }}</div>
+                </div>
+                {% else %}
+                <p style="font-size:13px; color:#64748b;">작성된 답변이 없습니다.</p>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card" style="text-align:center; padding:30px; color:#64748b;">
+                아직 누적된 질문 답변 데이터가 없습니다.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>

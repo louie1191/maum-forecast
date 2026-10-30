@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 import uuid
 
 app = Flask(__name__)
-app.secret_key = "maum_secret_forecast_key_2026_v8"
+app.secret_key = "maum_secret_forecast_key_2026_v10"
 DB_NAME = "maum.db"
 
 ADMIN_KEY = "maum1234"
@@ -67,6 +67,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS daily_answers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             question_date TEXT NOT NULL,
+            question_text TEXT NOT NULL,
             author_token TEXT NOT NULL,
             content TEXT NOT NULL,
             likes INTEGER DEFAULT 0,
@@ -126,10 +127,13 @@ DAILY_QUESTIONS = [
     "나를 위로해주는 '마음의 우산' 같은 사람이나 물건, 혹은 취미가 있다면 무엇인가요?"
 ]
 
+def get_question_by_date(date_str):
+    idx = int(hashlib.md5(date_str.encode()).hexdigest(), 16) % len(DAILY_QUESTIONS)
+    return DAILY_QUESTIONS[idx]
+
 def get_today_question():
     today_str = datetime.now().strftime("%Y-%m-%d")
-    idx = int(hashlib.md5(today_str.encode()).hexdigest(), 16) % len(DAILY_QUESTIONS)
-    return today_str, DAILY_QUESTIONS[idx]
+    return today_str, get_question_by_date(today_str)
 
 @app.before_request
 def check_login_and_log():
@@ -209,6 +213,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# 오늘의 질문 (당일 답변만 조회)
 @app.route('/daily', methods=['GET', 'POST'])
 def daily():
     today_date, question_text = get_today_question()
@@ -216,11 +221,12 @@ def daily():
     if request.method == 'POST':
         content = request.form.get('content', '').strip()
         if content:
-            db.execute("INSERT INTO daily_answers (question_date, author_token, content) VALUES (?, ?, ?)",
-                       (today_date, session['user_token'], content))
+            db.execute("INSERT INTO daily_answers (question_date, question_text, author_token, content) VALUES (?, ?, ?, ?)",
+                       (today_date, question_text, session['user_token'], content))
             db.commit()
         return redirect(url_for('daily'))
 
+    # 당일(today_date) 답변만 노출
     answers = db.execute("""
         SELECT a.*, COALESCE(u.nickname, '익명의 날씨') as author_name
         FROM daily_answers a
@@ -272,6 +278,7 @@ def admin_logout():
     session['is_admin'] = False
     return redirect(url_for('index'))
 
+# 관리자 관제소 (로그 + 질문 아카이브 탭)
 @app.route('/admin/logs')
 def admin_logs():
     if not session.get('is_admin'):
@@ -295,13 +302,37 @@ def admin_logs():
         """, (u['user_token'],)).fetchall()
         user_logs[u['user_token']] = logs
 
+    # 모든 날짜의 질문 답변 기록 조회 (최신 날짜순)
+    archived_answers = db.execute("""
+        SELECT a.*, COALESCE(u.nickname, '익명의 날씨') as author_name
+        FROM daily_answers a
+        LEFT JOIN users u ON a.author_token = u.user_token
+        ORDER BY a.question_date DESC, a.id DESC
+    """).fetchall()
+
+    # 날짜별로 그룹화
+    archive_by_date = {}
+    for ans in archived_answers:
+        q_date = ans['question_date']
+        if q_date not in archive_by_date:
+            q_text = ans['question_text'] if ans['question_text'] else get_question_by_date(q_date)
+            archive_by_date[q_date] = {'question': q_text, 'answers': []}
+        archive_by_date[q_date]['answers'].append(ans)
+
     total_posts = db.execute("SELECT COUNT(*) as cnt FROM posts").fetchone()['cnt']
     total_comments = db.execute("SELECT COUNT(*) as cnt FROM comments").fetchone()['cnt']
     total_users = len(users)
+    total_daily = len(archived_answers)
     db.close()
 
-    return render_template('admin_logs.html', users=users, user_logs=user_logs, 
-                           total_posts=total_posts, total_comments=total_comments, total_users=total_users)
+    return render_template('admin_logs.html', 
+                           users=users, 
+                           user_logs=user_logs, 
+                           archive_by_date=archive_by_date,
+                           total_posts=total_posts, 
+                           total_comments=total_comments, 
+                           total_users=total_users,
+                           total_daily=total_daily)
 
 @app.route('/delete_post/<int:post_id>', methods=['POST'])
 def delete_post(post_id):
