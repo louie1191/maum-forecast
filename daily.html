@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 마음 날씨 질문</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #fef08a 0%, #fed7aa 60%, #bae6fd 100%);
+            min-height: 100vh; padding: 24px 16px; display: flex; justify-content: center;
+        }
+        .container { max-width: 650px; width: 100%; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .chip {
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); padding: 8px 14px;
+            border-radius: 14px; text-decoration: none; color: #334155; font-size: 13px; font-weight: 700;
+        }
+        .question-card {
+            background: white; border-radius: 28px; padding: 30px 24px; margin-bottom: 22px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06); text-align: center;
+        }
+        .q-tag {
+            display: inline-block; background: #fef3c7; color: #b45309; font-weight: 800;
+            font-size: 13px; padding: 6px 14px; border-radius: 20px; margin-bottom: 12px;
+        }
+        .q-text { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.5; margin-bottom: 20px; }
+        
+        textarea {
+            width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 16px;
+            font-size: 14px; margin-bottom: 12px; background: #f8fafc;
+        }
+        .btn-submit {
+            width: 100%; padding: 14px; border: none; border-radius: 14px; background: #f59e0b;
+            color: white; font-size: 15px; font-weight: 800; cursor: pointer;
+        }
+
+        .answers-card {
+            background: white; border-radius: 28px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        .answers-card h3 { font-size: 17px; color: #0f172a; margin-bottom: 16px; }
+        .ans-item {
+            padding: 16px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .ans-body-wrap { flex: 1; }
+        .ans-header { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ans-date { font-weight: 400; color: #94a3b8; font-size: 12px; }
+        .ans-content { font-size: 15px; color: #334155; line-height: 1.55; white-space: pre-wrap; }
+        
+        .dm-trigger-sm {
+            background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; border-radius: 8px; padding: 2px 8px; cursor: pointer; font-size: 11px; font-weight: 700;
+        }
+        .like-btn-sm {
+            background: #fff1f2; color: #f43f5e; border: 1px solid #fecdd3; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 700; margin-left: 10px;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-box { background: white; padding: 24px; border-radius: 20px; max-width: 420px; width: 90%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <a href="/" class="chip">← 메인으로</a>
+            <span class="chip">내 계정: <b>{{ current_user_name }}</b></span>
+            <a href="/inbox" class="chip">☁️ 내 쪽지함</a>
+        </div>
+
+        <div class="question-card">
+            <span class="q-tag">🔮 오늘의 마음 날씨 질문 ({{ today_date }})</span>
+            <div class="q-text">{{ question }}</div>
+
+            <form action="/daily" method="POST">
+                <textarea name="content" rows="3" placeholder="떠오르는 솔직한 생각이나 답변을 남겨보세요..." required></textarea>
+                <button type="submit" class="btn-submit">내 마음 답변 등록</button>
+            </form>
+        </div>
+
+        <div class="answers-card">
+            <h3>💬 모두의 마음 답변 ({{ answers|length }})</h3>
+            {% for a in answers %}
+            <div class="ans-item">
+                <div class="ans-body-wrap">
+                    <div class="ans-header">
+                        <span>{{ a['author_name'] }}</span>
+                        {% if a['author_token'] != current_user_token %}
+                        <button type="button" class="dm-trigger-sm" onclick="openModal('{{ a['author_token'] }}', '{{ a['author_name'] }}')">☁️ 쪽지</button>
+                        {% endif %}
+                        <span class="ans-date">{{ a['created_at'] }}</span>
+                    </div>
+                    <div class="ans-content">{{ a['content'] }}</div>
+                </div>
+
+                <form action="/like_daily/{{ a['id'] }}" method="POST" style="margin:0;">
+                    <button type="submit" class="like-btn-sm">❤️ {{ a['likes'] }}</button>
+                </form>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #94a3b8; padding: 24px 0;">아직 남겨진 답변이 없습니다. 첫 번째 답변자가 되어보세요!</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 구름 쪽지 모달 -->
+    <div id="dmModal" class="modal">
+        <div class="modal-box">
+            <h3 style="margin-bottom: 6px;">☁️ <span id="targetUser"></span>님께 구름 쪽지</h3>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">상대방과 1:1 대화방이 생성되어 안전하게 전달됩니다.</p>
+            <form action="/send_dm" method="POST">
+                <input type="hidden" name="receiver_token" id="receiverToken">
+                <div style="margin-bottom:12px;">
+                    <textarea name="message" rows="4" placeholder="비밀 쪽지 내용을 입력하세요..." required style="width:100%; border:1px solid #cbd5e1; border-radius:12px; padding:10px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-submit" style="flex:1;">보내기</button>
+                    <button type="button" onclick="closeModal()" style="padding:10px 16px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; cursor:pointer;">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(token, nickname) {
+            document.getElementById('receiverToken').value = token;
+            document.getElementById('targetUser').innerText = nickname;
+            document.getElementById('dmModal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('dmModal').style.display = 'none'; }
+    </script>
+</body>
+</html>
