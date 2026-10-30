@@ -73,7 +73,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    # 1:1 쪽지 테이블 (대화방 쿼리 최적화)
     c.execute("""
         CREATE TABLE IF NOT EXISTS direct_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -433,7 +432,6 @@ def like_comment(comment_id):
     db.close()
     return redirect(request.referrer or url_for('index'))
 
-# 쪽지 전송 API (모달 및 채팅방 공용)
 @app.route('/send_dm', methods=['POST'])
 def send_dm():
     receiver_token = request.form.get('receiver_token')
@@ -446,18 +444,14 @@ def send_dm():
         db.commit()
         db.close()
     
-    # 만약 특정 채팅방에서 보낸 경우 해당 채팅방 유지
     if request.form.get('from_chat') == '1':
         return redirect(url_for('chat_room', partner_token=receiver_token))
     return redirect(request.referrer or url_for('inbox'))
 
-# 1. 구름쪽지함 (대화 상대방별 채팅방 목록)
 @app.route('/inbox')
 def inbox():
     my_token = session['user_token']
     db = get_db()
-    
-    # 나와 쪽지를 주고받은(보냈거나 받은) 상대방 토큰과 가장 최근 메시지 시간 추출
     dialog_rows = db.execute("""
         SELECT 
             CASE WHEN sender_token = ? THEN receiver_token ELSE sender_token END as partner_token,
@@ -471,11 +465,9 @@ def inbox():
     chat_rooms = []
     for row in dialog_rows:
         p_token = row['partner_token']
-        # 상대방 닉네임
         partner = db.execute("SELECT nickname FROM users WHERE user_token = ?", (p_token,)).fetchone()
         partner_name = partner['nickname'] if partner else "알 수 없는 사용자"
         
-        # 마지막 메시지 내용
         last_msg = db.execute("""
             SELECT message, sender_token, created_at FROM direct_messages 
             WHERE (sender_token = ? AND receiver_token = ?) OR (sender_token = ? AND receiver_token = ?)
@@ -493,7 +485,6 @@ def inbox():
     db.close()
     return render_template('inbox.html', chat_rooms=chat_rooms)
 
-# 2. 1:1 대화방 (카톡/인스타 DM 형태)
 @app.route('/chat/<partner_token>')
 def chat_room(partner_token):
     my_token = session['user_token']
@@ -501,7 +492,6 @@ def chat_room(partner_token):
     partner = db.execute("SELECT nickname FROM users WHERE user_token = ?", (partner_token,)).fetchone()
     partner_name = partner['nickname'] if partner else "알 수 없는 사용자"
 
-    # 둘 사이에 오간 모든 메시지를 시간순으로 정렬
     messages = db.execute("""
         SELECT * FROM direct_messages
         WHERE (sender_token = ? AND receiver_token = ?) OR (sender_token = ? AND receiver_token = ?)
