@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마음기상청 | 로그인</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #a5b4fc 0%, #bae6fd 50%, #fef08a 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            max-width: 400px; width: 100%; padding: 36px 28px; border-radius: 28px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08); text-align: center;
+        }
+        .icon { font-size: 40px; margin-bottom: 10px; }
+        h2 { font-size: 24px; color: #0f172a; margin-bottom: 8px; font-weight: 800; }
+        p { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; text-align: left; }
+        label { font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 6px; display: block; }
+        input[type="text"] {
+            width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 14px; font-size: 14px; background: #f8fafc;
+        }
+        .pw-wrap { position: relative; width: 100%; }
+        .pw-wrap input {
+            width: 100%; padding: 12px 42px 12px 14px; border: 1px solid #cbd5e1; border-radius: 14px; font-size: 14px; background: #f8fafc;
+        }
+        .eye-btn {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; font-size: 18px; color: #64748b;
+        }
+        .btn-submit {
+            width: 100%; padding: 14px; border: none; border-radius: 14px; background: #3b82f6;
+            color: white; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px;
+        }
+        .error-msg { background: #fee2e2; color: #ef4444; padding: 10px; border-radius: 12px; font-size: 13px; margin-bottom: 16px; }
+        .switch-link { margin-top: 20px; font-size: 13px; color: #64748b; }
+        .switch-link a { color: #3b82f6; font-weight: 700; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">⛅</div>
+        <h2>마음기상청 입장</h2>
+        <p>익명 닉네임과 비밀번호로 로그인하세요</p>
+
+        {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>익명 닉네임</label>
+                <input type="text" name="nickname" placeholder="예: 따뜻한 봄바람" required>
+            </div>
+            <div class="form-group">
+                <label>비밀번호</label>
+                <div class="pw-wrap">
+                    <input type="password" id="loginPw" name="password" placeholder="비밀번호" required>
+                    <button type="button" class="eye-btn" onclick="togglePw('loginPw')">👁️</button>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit">로그인하고 시작하기</button>
+        </form>
+
+        <div class="switch-link">
+            계정이 아직 없으신가요? <a href="/register">간편 익명 회원가입</a>
+        </div>
+    </div>
+
+    <script>
+        function togglePw(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }} - 댓글</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: #f0f4f8; min-height: 100vh; padding: 24px 16px; display: flex; justify-content: center; }
+        .container { max-width: 650px; width: 100%; }
+        .back-btn { text-decoration: none; color: #475569; font-weight: 700; font-size: 14px; }
+        .card { background: white; border-radius: 24px; padding: 24px; margin: 16px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
+        .weather-badge {
+            display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: 800; margin-bottom: 10px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b;
+        }
+        .post-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .post-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+        .post-meta { font-size: 13px; color: #64748b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .post-content { font-size: 16px; color: #334155; line-height: 1.65; white-space: pre-wrap; margin-bottom: 16px; }
+        img { max-width: 100%; border-radius: 16px; margin-bottom: 12px; }
+        audio { width: 100%; margin-bottom: 12px; }
+
+        .comments-section h4 { font-size: 17px; color: #0f172a; margin-bottom: 14px; }
+        .comment-item { padding: 14px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; }
+        .c-body-wrap { flex: 1; }
+        .c-meta { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .c-date { font-weight: 400; color: #94a3b8; font-size: 12px; }
+        .c-body { font-size: 14px; color: #475569; line-height: 1.5; white-space: pre-wrap; }
+        
+        .dm-trigger-sm {
+            background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; border-radius: 8px; padding: 2px 6px; cursor: pointer; font-size: 11px; font-weight: 700;
+        }
+        .admin-del-btn {
+            background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+        .comment-like-btn {
+            background: #fff1f2; color: #f43f5e; border: 1px solid #fecdd3; padding: 4px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 700; margin-left: 10px;
+        }
+
+        textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; margin-bottom: 10px; font-size: 14px; }
+        .btn-submit { background: #3b82f6; color: white; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-box { background: white; padding: 24px; border-radius: 20px; max-width: 420px; width: 90%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/board/{{ post.board_type }}" class="back-btn">← 게시판으로 돌아가기</a>
+
+        <div class="card">
+            <div class="weather-badge">
+                <span>{{ post['weather_icon'] }}</span>
+                <span>· 마음 감정: <b>{{ post['emotion'] }}</b></span>
+            </div>
+
+            <div class="post-header">
+                <h2 class="post-title">{{ post['title'] }}</h2>
+                {% if is_admin %}
+                <form action="/delete_post/{{ post['id'] }}" method="POST" onsubmit="return confirm('이 글을 삭제하시겠습니까?');">
+                    <button type="submit" class="admin-del-btn">🗑️ 글 삭제</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="post-meta">
+                <b>{{ post['author_name'] }}</b>
+                {% if post['author_token'] != current_user_token %}
+                <button type="button" class="dm-trigger-sm" onclick="openModal('{{ post['author_token'] }}', '{{ post['author_name'] }}')">☁️ 쪽지</button>
+                {% endif %}
+                <span>· {{ post['created_at'] }}</span>
+            </div>
+            <div class="post-content">{{ post['content'] }}</div>
+
+            {% if post['image_path'] %}
+            <img src="/static/uploads/{{ post['image_path'] }}" alt="첨부 이미지">
+            {% endif %}
+
+            {% if post['audio_path'] %}
+            <audio controls><source src="/static/uploads/{{ post['audio_path'] }}"></audio>
+            {% endif %}
+
+            <form action="/like/{{ post['id'] }}" method="POST">
+                <button type="submit" style="background:#ffe4e6; border:none; color:#e11d48; padding:8px 14px; border-radius:12px; cursor:pointer; font-weight:700;">
+                    ❤️ 원글 공감 {{ post['likes'] }}
+                </button>
+            </form>
+        </div>
+
+        <div class="card comments-section">
+            <h4>💬 모두의 댓글 ({{ comments|length }})</h4>
+            
+            <form action="/post/{{ post['id'] }}" method="POST" style="margin-bottom: 20px;">
+                <p style="font-size:13px; color:#64748b; margin-bottom:6px;">작성자: <b>{{ current_user_name }}</b></p>
+                <textarea name="content" rows="3" placeholder="따뜻한 조언이나 공감의 한마디를 남겨주세요." required></textarea>
+                <button type="submit" class="btn-submit">댓글 남기기</button>
+            </form>
+
+            <div>
+                {% for c in comments %}
+                <div class="comment-item">
+                    <div class="c-body-wrap">
+                        <div class="c-meta">
+                            <span>{{ c['author_name'] }}</span>
+                            {% if c['author_token'] != current_user_token %}
+                            <button type="button" class="dm-trigger-sm" onclick="openModal('{{ c['author_token'] }}', '{{ c['author_name'] }}')">☁️ 쪽지</button>
+                            {% endif %}
+                            <span class="c-date">{{ c['created_at'] }}</span>
+                        </div>
+                        <div class="c-body">{{ c['content'] }}</div>
+                    </div>
+                    
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        {% if is_admin %}
+                        <form action="/delete_comment/{{ c['id'] }}" method="POST" onsubmit="return confirm('이 댓글을 삭제하시겠습니까?');" style="margin:0;">
+                            <button type="submit" class="admin-del-btn">🗑️ 삭제</button>
+                        </form>
+                        {% endif %}
+                        <form action="/like_comment/{{ c['id'] }}" method="POST" style="margin:0;">
+                            <button type="submit" class="comment-like-btn">❤️ {{ c['likes'] }}</button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <p style="color: #94a3b8; font-size: 14px; text-align: center; padding: 12px 0;">첫 번째 댓글을 달아 마음을 전해보세요.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 쪽지 모달 -->
+    <div id="dmModal" class="modal">
+        <div class="modal-box">
+            <h3 style="margin-bottom: 6px;">☁️ <span id="targetUser"></span>님께 구름 쪽지</h3>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">상대방의 쪽지함으로 안전하게 익명 전송됩니다.</p>
+            <form action="/send_dm" method="POST">
+                <input type="hidden" name="receiver_token" id="receiverToken">
+                <div class="form-group">
+                    <textarea name="message" rows="4" placeholder="비밀 쪽지 내용을 입력하세요..." required style="width:100%; border:1px solid #cbd5e1; border-radius:12px; padding:10px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-submit" style="flex:1;">보내기</button>
+                    <button type="button" onclick="closeModal()" style="padding:10px 16px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; cursor:pointer;">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(token, nickname) {
+            document.getElementById('receiverToken').value = token;
+            document.getElementById('targetUser').innerText = nickname;
+            document.getElementById('dmModal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('dmModal').style.display = 'none'; }
+    </script>
+</body>
+</html>

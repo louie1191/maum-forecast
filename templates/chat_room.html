@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ partner_name }}님과의 대화</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: #bae6fd; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 12px; }
+        .chat-app {
+            max-width: 500px; width: 100%; height: 90vh; background: #f8fafc;
+            border-radius: 28px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+        .chat-header {
+            background: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .chat-header a { text-decoration: none; color: #475569; font-weight: 700; font-size: 14px; }
+        .partner-title { font-size: 16px; font-weight: 800; color: #0f172a; }
+
+        .chat-messages {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+            background: #f1f5f9;
+        }
+        .msg-row { display: flex; width: 100%; }
+        .msg-row.me { justify-content: flex-end; }
+        .msg-row.partner { justify-content: flex-start; }
+
+        .bubble {
+            max-width: 75%; padding: 12px 16px; font-size: 14px; line-height: 1.5;
+            white-space: pre-wrap; word-break: break-word; position: relative;
+        }
+        .msg-row.me .bubble {
+            background: #2563eb; color: white; border-radius: 18px 18px 4px 18px;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, 0.2);
+        }
+        .msg-row.partner .bubble {
+            background: white; color: #1e293b; border-radius: 18px 18px 18px 4px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+        }
+        .msg-time { font-size: 10px; color: #94a3b8; margin: 0 6px; align-self: flex-end; }
+
+        .chat-input-bar {
+            background: white; padding: 14px 16px; display: flex; gap: 10px; border-top: 1px solid #e2e8f0;
+        }
+        .chat-input-bar input {
+            flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 20px;
+            font-size: 14px; outline: none; background: #f8fafc;
+        }
+        .chat-input-bar input:focus { border-color: #2563eb; background: #fff; }
+        .chat-input-bar button {
+            background: #2563eb; color: white; border: none; padding: 10px 18px;
+            border-radius: 20px; font-weight: 700; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-app">
+        <div class="chat-header">
+            <a href="/inbox">← 쪽지 목록</a>
+            <div class="partner-title">☁️ {{ partner_name }}님과의 대화</div>
+            <div style="width: 40px;"></div>
+        </div>
+
+        <div class="chat-messages" id="chatBox">
+            {% for m in messages %}
+                {% if m.sender_token == current_user_token %}
+                <div class="msg-row me">
+                    <span class="msg-time">{{ m.created_at[11:16] }}</span>
+                    <div class="bubble">{{ m.message }}</div>
+                </div>
+                {% else %}
+                <div class="msg-row partner">
+                    <div class="bubble">{{ m.message }}</div>
+                    <span class="msg-time">{{ m.created_at[11:16] }}</span>
+                </div>
+                {% endif %}
+            {% else %}
+            <p style="text-align: center; color: #94a3b8; margin: auto;">주고받은 첫 쪽지가 없습니다. 아래에서 대화를 시작해 보세요!</p>
+            {% endfor %}
+        </div>
+
+        <form action="/send_dm" method="POST" class="chat-input-bar">
+            <input type="hidden" name="receiver_token" value="{{ partner_token }}">
+            <input type="hidden" name="from_chat" value="1">
+            <input type="text" name="message" placeholder="쪽지 내용을 입력하세요..." required autocomplete="off">
+            <button type="submit">전송</button>
+        </form>
+    </div>
+
+    <script>
+        // 스크롤 맨 아래로 이동
+        const box = document.getElementById('chatBox');
+        box.scrollTop = box.scrollHeight;
+    </script>
+</body>
+</html>

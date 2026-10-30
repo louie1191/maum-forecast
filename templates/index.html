@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마음기상청 | 날씨로 나누는 우리들의 마음</title>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #a5b4fc 0%, #bae6fd 50%, #fef08a 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; overflow-x: hidden;
+        }
+        .sky-cloud {
+            position: absolute; background: rgba(255, 255, 255, 0.45); border-radius: 50px; pointer-events: none; animation: drift 18s linear infinite;
+        }
+        .c1 { width: 140px; height: 45px; top: 12%; left: -100px; animation-duration: 24s; }
+        .c2 { width: 220px; height: 60px; top: 68%; left: -150px; animation-duration: 32s; animation-delay: 5s; }
+        .c3 { width: 180px; height: 50px; top: 35%; left: -120px; animation-duration: 20s; animation-delay: 10s; }
+        @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(120vw); } }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(12px); max-width: 540px; width: 100%; padding: 40px 32px; border-radius: 32px; box-shadow: 0 20px 40px rgba(30, 41, 59, 0.1); text-align: center; z-index: 1;
+        }
+        .profile-bar {
+            background: #f1f5f9; border-radius: 20px; padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; font-size: 14px; color: #334155; flex-wrap: wrap; justify-content: center;
+        }
+        .profile-bar button, .profile-bar a {
+            background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: #475569; text-decoration: none; cursor: pointer;
+        }
+        .admin-badge { background: #fee2e2 !important; color: #ef4444 !important; border-color: #fca5a5 !important; }
+        .weather-icons { font-size: 48px; margin-bottom: 12px; display: inline-block; animation: bounce 2.5s ease-in-out infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        h1 { color: #0f172a; font-size: 28px; font-weight: 800; margin-bottom: 10px; }
+        .desc { color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px; }
+        
+        .board-menu { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+        .board-btn {
+            display: flex; align-items: center; padding: 18px 20px; border-radius: 22px; text-decoration: none; color: white; transition: all 0.25s ease; text-align: left;
+        }
+        .board-btn:hover { transform: translateY(-4px); }
+        .btn-rain { background: linear-gradient(135deg, #3b82f6, #6366f1); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35); }
+        .btn-sun { background: linear-gradient(135deg, #f59e0b, #ef4444); box-shadow: 0 10px 25px rgba(245, 158, 11, 0.35); }
+        .btn-daily { background: linear-gradient(135deg, #10b981, #06b6d4); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35); }
+        
+        .icon { font-size: 34px; margin-right: 16px; }
+        .board-btn h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+        .board-btn p { font-size: 13px; opacity: 0.95; }
+
+        .bottom-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .nav-btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 14px; text-decoration: none; font-size: 14px; font-weight: 700;
+        }
+        .inbox-link { background: #e0f2fe; color: #0369a1; }
+        .admin-link { background: #fef3c7; color: #b45309; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); align-items: center; justify-content: center; z-index: 99;
+        }
+        .modal-box { background: white; border-radius: 24px; padding: 26px; max-width: 380px; width: 90%; text-align: left; }
+        .modal-box input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; margin: 12px 0 16px; }
+        
+        .password-wrapper { position: relative; width: 100%; margin: 12px 0 16px; }
+        .password-wrapper input { width: 100%; padding: 12px 42px 12px 12px; border: 1px solid #cbd5e1; border-radius: 12px; margin: 0; }
+        .eye-btn {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="sky-cloud c1"></div>
+    <div class="sky-cloud c2"></div>
+    <div class="sky-cloud c3"></div>
+
+    <div class="main-card">
+        <div class="profile-bar">
+            <span>🌦️ <b>{{ current_user_name }}</b>님</span>
+            {% if is_admin %}<span class="admin-badge">👑 관리자</span>{% endif %}
+            <button onclick="document.getElementById('profileModal').style.display='flex'">닉네임 변경</button>
+            {% if not is_admin %}
+            <button onclick="document.getElementById('adminModal').style.display='flex'">관리자 인증</button>
+            {% else %}
+            <a href="/admin_logout" style="color:#ef4444;">관리자 해제</a>
+            {% endif %}
+            <a href="/logout" style="color:#64748b;">로그아웃</a>
+        </div>
+
+        <div class="weather-icons">🌧️ ⛅ ☀️</div>
+        <h1>마음기상청</h1>
+        <p class="desc">때로는 소나기가 내리고 때로는 맑은 해가 뜹니다.<br>서로의 마음에 따뜻한 날씨를 띄워주세요.</p>
+
+        <div class="board-menu">
+            <a href="/daily" class="board-btn btn-daily">
+                <span class="icon">🔮</span>
+                <div>
+                    <h3>오늘의 마음 날씨 질문</h3>
+                    <p>매일 달라지는 색다른 질문에 내 마음을 남겨보세요</p>
+                </div>
+            </a>
+            <a href="/board/1" class="board-btn btn-rain">
+                <span class="icon">🌧️</span>
+                <div>
+                    <h3>1페이지: 고민 나누기 (마음 흐림)</h3>
+                    <p>마음에 비가 올 때 솔직하게 털어놓고 위로를 받아요</p>
+                </div>
+            </a>
+            <a href="/board/2" class="board-btn btn-sun">
+                <span class="icon">☀️</span>
+                <div>
+                    <h3>2페이지: 해결방법 나누기 (마음 맑음)</h3>
+                    <p>따스한 햇살 같은 나만의 조언과 긍정 해법을 공유해요</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="bottom-actions">
+            <a href="/inbox" class="nav-btn inbox-link">☁️ 내 구름 쪽지함</a>
+            {% if is_admin %}
+            <a href="/admin/logs" class="nav-btn admin-link">📊 관제소 (접속 로그 탭)</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 닉네임 변경 모달 -->
+    <div id="profileModal" class="modal">
+        <div class="modal-box">
+            <h3 style="font-size: 18px; margin-bottom: 6px;">⚙️ 닉네임 수정</h3>
+            <p style="font-size: 13px; color: #64748b;">닉네임을 바꾸면 이전에 작성한 글과 댓글의 이름도 한 번에 변경됩니다.</p>
+            <form action="/update_profile" method="POST">
+                <input type="text" name="new_name" value="{{ current_user_name }}" required>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" style="flex:1; padding:12px; border-radius:12px; border:none; background:#3b82f6; color:#fff; font-weight:700; cursor:pointer;">저장</button>
+                    <button type="button" onclick="document.getElementById('profileModal').style.display='none'" style="padding:12px 18px; border-radius:12px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="adminModal" class="modal">
+        <div class="modal-box">
+            <h3 style="font-size: 18px; margin-bottom: 6px;">👑 관리자 인증</h3>
+            <p style="font-size: 13px; color: #64748b;">관리자 키를 입력하여 삭제 및 접속 관제 권한을 활성화합니다.</p>
+            <form action="/admin_login" method="POST">
+                <div class="password-wrapper">
+                    <input type="password" id="adminKeyInput" name="admin_key" placeholder="관리자 키를 입력하세요" required>
+                    <button type="button" class="eye-btn" onclick="togglePasswordVisibility()">👁️</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" style="flex:1; padding:12px; border-radius:12px; border:none; background:#ef4444; color:#fff; font-weight:700; cursor:pointer;">인증</button>
+                    <button type="button" onclick="document.getElementById('adminModal').style.display='none'" style="padding:12px 18px; border-radius:12px; border:1px solid #cbd5e1; background:#fff; cursor:pointer;">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility() {
+            const input = document.getElementById('adminKeyInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>
